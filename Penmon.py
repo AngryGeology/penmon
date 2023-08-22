@@ -57,48 +57,38 @@ class PETestimator():
         Average windspeed in m/s. The default is assumed to be 0.
                      
     Pa : float, optional
-        Barometric pressure (kPa), if left as None will be estimated as a function of
-        observation elevation. Nb: should be about 100 kPa. 
+        Barometric pressure (kPa), if left as None will be estimated as a 
+        function of observation elevation. Nb: should be about 100 kPa. 
                      
     RHmax : float, optional
-        Maximum relative humidity (%). The default is 60. 
+        Maximum relative humidity (%). The default is 90. 
+    
+    RHmin : float, optional
+        Minimum relative humidity (%). The default is 60. 
                      
-    Ea : TYPE, optional
-        DESCRIPTION. The default is None.
-    # optional : TYPE
-        DESCRIPTION.
-    actual vapour pressure in kPa                 
-    Es : TYPE, optional
-        DESCRIPTION. The default is None.
-    # optional : TYPE
-        DESCRIPTION.
-    saturation vapour pressure in kPa                 
-    G : TYPE, optional
-        DESCRIPTION. The default is None.
-    # optional : TYPE
-        DESCRIPTION.
-    soil flux density in MJ m^-2 day^-1 ... often set at 0.                 
-    Rn : TYPE, optional
-        DESCRIPTION. The default is None.
-    # optional : TYPE
-        DESCRIPTION.
-    net radiation at surface in MJ m^-2 day^-1                 
-    psy : TYPE, optional
-        DESCRIPTION. The default is None.
-    # optional : TYPE
-        DESCRIPTION.
-    Psychromatic constant in kPa deg C^-1                 
-    daylighthours : TYPE, optional
-        DESCRIPTION. The default is None.
-    # optional : TYPE
-        DESCRIPTION.
-    measured number of daylight hours : TYPE
-        DESCRIPTION.
+    Ea : float, optional
+        Actual vapour pressure (kPa). The default is None.
+              
+    Es : float, optional
+        Saturation vapour pressure (kPa). The default is None.
+
+    G : float, optional
+        Soil flux density (MJ m^-2 day^-1 ). The default is 0.
+              
+    Rn : float, optional
+        Net radiation at surface (MJ m^-2 day^-1). The default is None.
+            
+    psy : float, optional
+        Psychromatic constant (kPa deg C^-1) . The default is None.
+
+    daylighthours : float, optional
+        Measured number of daylight hours. The default is 90 % of total
+        possible.
 
     Raises
     ------
     Exception
-        DESCRIPTION.
+        If required parameters are not provided.
 
     Returns
     -------
@@ -116,7 +106,8 @@ class PETestimator():
                  Tdew = None, # optional, dew point temperature in deg C 
                  Wspeed = None, # reccomended, windspeed in m/s 
                  Pa = None, # optional, atmospheric pressure in kPa 
-                 RHmax = None, # reccomended, maximum relative humidity
+                 RHmax = None, # reccomended, maximum relative humidity in % 
+                 RHmin = None, # reccomended, minimum relative humidity in % 
                  Ea = None, # optional, actual vapour pressure in kPa
                  Es = None, # optional, saturation vapour pressure in kPa
                  G = None, # optional, soil flux density in MJ m^-2 day^-1 ... often set at 0. 
@@ -148,9 +139,13 @@ class PETestimator():
         if Tdew is None and RHmax is None:
             warn('A relative humidity estimate is reccomended if dew point is not known')
         if RHmax is None: 
-            self.RHmax = 60 
+            self.RHmax = 90 
         else:
             self.RHmax = RHmax 
+        if RHmin is None:
+            self.RHmin = 60
+        else:
+            self.RHmin = RHmin 
         
         # date handling 
         if isinstance(date,str):
@@ -217,6 +212,10 @@ class PETestimator():
     def estEa(self):
         if self.Tdew is not None: 
             return vapPres(self.Tdew)
+        elif isinstance(self.RHmax,float) and isinstance(self.RHmin,float):
+            a = vapPres(self.Tmin)*(self.RHmax/100)
+            b = vapPres(self.Tmax)*(self.RHmin/100)
+            return (a+b)/2 
         else:
             return vapPres(self.Tmin)*(self.RHmax/100)
     
@@ -224,7 +223,7 @@ class PETestimator():
         return (Cp*self.Pa)/(epsilon*lamda)
     
     def compDelta(self):
-        return (4098*vapPres(self.Tmean))/(self.Tmean + 273.3)
+        return (4098*vapPres(self.Tmean)) / ((self.Tmean + 273.3)**2)
     
     def estRa(self):
         """
@@ -284,7 +283,8 @@ class PETestimator():
         Ra, ws = self.estRa()
         # compute daylight hours 
         N = (24/ma.pi)*ws 
-        n = 0.9 * N 
+        if n is None: 
+            n = 0.6 * N 
         Rs = (a_s + (b_s*(n/N)))*Ra 
         
         Rso = (0.75 + (2e-5 * self.elev))*Ra 
@@ -363,6 +363,9 @@ class PETestimator():
         denom = self.Delta + (self.psy*(1+(0.34*self.Wspeed))) # denomator 
 
         Et0 = numon / denom # ET calculation 
+        
+        if Et0 < 0: 
+            return 0 
 
         return Et0         
         
