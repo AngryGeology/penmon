@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 from warnings import warn 
 
 #define some constants 
-stefboltzman = 5.670374419e-8 # (stefan boltzman constant from google)
+stefboltzman = 4.903e-9 # Stefan boltzman constant from Allen et 1998 et al 
 Cp = 1.013e-3 # MJ kg^-1 c^-1 - specifc heat at constant pressure 
 lamda = 2.45 # MJ kg^-1 - latent heat of vapourisation 
 epsilon = 0.622 # ratio of molecular weight of water versus air 
@@ -303,14 +303,14 @@ class PETestimator():
         -------
         Rns : float
             shortwave radiation
-        Rnl : TYPE
+        Rnl : float
             longwave radiation 
 
         """
         Rs, Rso = self.estRsRso(n) # estimate solar radiation and clear sky 
         Rns = (1-alpha)*Rs # shortwave radiation 
         
-        avgK = (self.Tmin+273.16+self.Tmax+273.16)/2 # average kelvin temp 
+        avgK = ((self.Tmin+273.16)**4 + (self.Tmax+273.16)**4)/2 # average kelvin temp 
         vapTerm = 0.34 - (0.14*ma.sqrt(self.Ea)) # vapour pressure term 
         radTerm = (1.35*(Rs/Rso)) - 0.35 # radiation term (~ 1)
         
@@ -375,30 +375,7 @@ class PETarray():
     def __init__(self):
         pass 
     
-# test 
-# Tmax = 23.00 
-# Tmean = 16.38 
-# Tmin = 9.61
-# Tdew = 13.61
-# Wspeed = 8.315 
-# Pa = 102.2 
-# RHmax = 94 
-# date = datetime(2023,8,21)
-# lat = 53.8711
-# elev = 103 
 
-
-# pm = PETestimator(lat, elev,
-#                   date=date,
-#                   Pa=Pa,
-#                   # RHmax=RHmax,
-#                   Tdew=Tdew, 
-#                   Wspeed=Wspeed,
-#                   Tmean=Tmean,
-#                   Tmax=Tmax,
-#                   Tmin=Tmin)
-
-# pm.estPET()
 
 
 
